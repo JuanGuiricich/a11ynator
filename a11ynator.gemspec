@@ -7,7 +7,8 @@ Gem::Specification.new do |spec|
   spec.homepage      = "https://github.com/JuanGuiricich/a11ynator" # Optional but recommended
   spec.license       = "MIT" # Or whichever license you prefer
 
-  spec.files         = Dir["lib/**/*.rb"] + ["README.md"]
+  spec.files         = Dir["lib/**/*.rb", "bin/*"] + ["README.md"]
+  spec.executables << "a11ynator"
 
   spec.add_dependency "nokogiri", "~> 1.12"
 
