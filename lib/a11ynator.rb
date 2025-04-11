@@ -4,12 +4,14 @@ require 'nokogiri'
 class A11ynator
   def self.check_img_alt(html_content, file: 'unknown')
     doc = Nokogiri::HTML(html_content)
-    missing_alt_attributes(doc, file)
+    html_issues = missing_alt_attributes(doc, file)
+    erb_issues = missing_image_tag_alts(html_content, file)
+    html_issues + erb_issues
   end
 
   def self.missing_alt_attributes(doc, file)
     doc.css('img').each_with_index.each_with_object([]) do |(img, index), missing_alts|
-      next if img.attribute('alt')
+      next if img.attribute('alt') && !img.attribute('alt').value.strip.empty?
 
       missing_alts << {
         index: index,
@@ -20,10 +22,31 @@ class A11ynator
     end
   end
 
+  def self.missing_image_tag_alts(content, file)
+    issues = []
+    content.lines.each_with_index do |line, idx|
+      if line =~ /<%=\s*image_tag\s+.*?['"][^'"]+['"].*?%>/ &&
+         (
+           !(line.include?("alt:")) ||
+           line =~ /alt:\s*(['"])\s*\1/ ||
+           line =~ /alt:\s*nil/
+         )
+        issues << {
+          index: idx,
+          file: file,
+          line: idx + 1,
+          tag: line.strip
+        }
+      end
+    end
+    issues
+  end
+
   def self.check_directory(directory)
     results = {}
-    Dir.glob("#{directory}/**/*.html").each do |file_path|
+    Dir.glob("#{directory}/**/*.{html,html.erb}").each do |file_path|
       html_content = File.read(file_path)
+
       missing = check_img_alt(html_content, file: file_path)
       results[file_path] = missing unless missing.empty?
     end
